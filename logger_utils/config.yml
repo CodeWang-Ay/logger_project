@@ -1,0 +1,4 @@
+log_config:
+  name: websocket_proxy_logs
+  log_folder: websocket_proxy_logs
+  log_level: DEBUG 
