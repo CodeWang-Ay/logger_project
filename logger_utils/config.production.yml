@@ -1,12 +1,11 @@
 log_config:
-  name: utils_logs
-  log_folder: utils_logs
-  log_level: DEBUG
+  name: app
+  log_level: INFO
   to_console: true
-  console_format: colored  # 生产容器建议改为 json
+  console_format: json
   console_stream: stdout
-  file_output: true        # 多 worker/容器建议设为 false
-  json_format: true        # 是否额外写入 JSONL 文件
+  file_output: false
+  json_format: false
   redaction_enabled: true
   max_message_length: 16384
   max_exception_length: 32768

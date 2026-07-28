@@ -42,7 +42,21 @@ log_config:
   log_folder: websocket_proxy_logs
   log_level: DEBUG
   to_console: true
+  console_format: colored
+  console_stream: stdout
+  file_output: true
   json_format: true
+  redaction_enabled: true
+  max_message_length: 16384
+  max_exception_length: 32768
+  capture_sqlalchemy: false
+  sqlalchemy_level: WARNING
+  redact_fields:
+    - password
+    - token
+    - authorization
+    - cookie
+    - secret
 ```
 
 `log_level` 控制控制台最低等级；文件日志仍完整记录 `DEBUG` 及以上信息。
@@ -61,6 +75,7 @@ from logger_utils.logger_manager import logger_manager
 logger_manager.start_config_watcher()
 # 应用关闭时：
 logger_manager.stop_config_watcher()
+logger_manager.close()
 ```
 
 没有安装 `watch` 额外依赖时，普通日志功能仍可正常使用。
@@ -80,7 +95,9 @@ except Exception:
     logger.exception("创建订单失败 order_id=%s", order_id)
 ```
 
-不要记录密码、访问令牌、银行卡号等敏感字段。
+默认脱敏过滤器会处理密码、令牌、Authorization、Cookie、API Key 等常见字段，
+包括嵌套字典、日志消息和异常文本。脱敏是最后一道保护，业务代码仍不应主动记录
+银行卡号、身份证号或完整请求体等敏感信息。
 
 仅作为组件安装时，FastAPI 和 Uvicorn 不会进入核心依赖：
 
@@ -107,6 +124,56 @@ websocket_proxy_logs/
 
 > `TimedRotatingFileHandler` 适合单进程运行。多 worker 或容器生产环境建议输出到
 > stdout，再交给日志采集器完成轮转与集中存储，避免多个进程同时轮转同一个文件。
+
+## 生产部署模式
+
+多 worker、Docker 或 Kubernetes 环境建议使用 JSON stdout，关闭应用内文件轮转：
+
+```yaml
+log_config:
+  name: order_service
+  log_level: INFO
+  to_console: true
+  console_format: json
+  console_stream: stdout
+  file_output: false
+  json_format: false
+  redaction_enabled: true
+  max_message_length: 16384
+  max_exception_length: 32768
+  capture_sqlalchemy: false
+```
+
+对应的数据流：
+
+```text
+Python worker → JSON stdout → Docker/Kubernetes runtime
+              → Fluent Bit / Vector / Filebeat → Loki / Elasticsearch
+```
+
+这种模式不共享日志文件，因此可以安全运行多个 worker。日志传输、重试、缓冲、
+压缩和保留周期由采集器负责，应用不会直接依赖 Kafka、Redis 或 Elasticsearch。
+
+单进程或本地开发环境可以继续使用 `file_output: true`。不要让多个进程同时轮转
+同一个文件。
+
+仓库已提供等价的生产模板：
+
+```python
+from logger_utils import close_logger_manager, get_logger
+
+config = "logger_utils/config.production.yml"
+logger = get_logger(__name__, config_path=config)
+
+# 应用关闭时释放 watcher 和 handlers
+close_logger_manager(config)
+```
+
+SQLAlchemy 日志默认不由组件接管，避免覆盖宿主应用的全局日志设置。确需统一采集时，
+设置 `capture_sqlalchemy: true`，并通过 `sqlalchemy_level` 控制最低等级。
+
+`max_message_length` 和 `max_exception_length` 用于限制超大单行日志，避免容器运行时
+或日志采集器截断过长记录。
 
 ## 测试
 

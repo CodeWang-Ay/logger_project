@@ -13,3 +13,4 @@ dist/
 *.log.*
 *.jsonl
 websocket_proxy_logs/
+utils_logs/

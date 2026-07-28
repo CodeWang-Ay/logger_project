@@ -19,6 +19,8 @@ from pathlib import Path
 from logger_utils.logger_manager import (
     JsonFormatter,
     LoggerManager,
+    SensitiveDataFilter,
+    close_default_manager,
     get_default_manager,
 )
 from logger_utils.trace import (
@@ -36,9 +38,11 @@ from logger_utils.trace import (
 __all__ = [
     "JsonFormatter",
     "LoggerManager",
+    "SensitiveDataFilter",
     "TraceFilter",
     "bind_trace_id",
     "clear_trace_id",
+    "close_logger_manager",
     "extract_trace_id",
     "get_logger",
     "get_logger_manager",
@@ -75,6 +79,19 @@ def get_logger_manager(config_path: str | None = None) -> LoggerManager:
             manager = LoggerManager(key)
             _manager_registry[key] = manager
         return manager
+
+
+def close_logger_manager(config_path: str | None = None) -> None:
+    """关闭 handler/watcher，并从组件注册表移除管理器。"""
+    if config_path is None:
+        close_default_manager()
+        return
+
+    key = _config_key(config_path)
+    with _registry_lock:
+        manager = _manager_registry.pop(key, None)
+    if manager is not None:
+        manager.close()
 
 
 def _configured_base_logger(manager: LoggerManager) -> logging.Logger:
@@ -116,6 +133,15 @@ def setup_logger(
     log_level: str | int = "DEBUG",
     to_console: bool = True,
     json_format: bool = True,
+    file_output: bool = True,
+    console_format: str = "colored",
+    console_stream: str = "stdout",
+    redaction_enabled: bool = True,
+    redact_fields: list[str] | None = None,
+    capture_sqlalchemy: bool = False,
+    sqlalchemy_level: str | int = "WARNING",
+    max_message_length: int = 16_384,
+    max_exception_length: int = 32_768,
 ) -> logging.Logger:
     """使用显式参数配置 logger；适合不希望读取 YAML 的场景。"""
     manager = get_logger_manager(config_path)
@@ -125,4 +151,13 @@ def setup_logger(
         log_level=log_level,
         to_console=to_console,
         json_format=json_format,
+        file_output=file_output,
+        console_format=console_format,
+        console_stream=console_stream,
+        redaction_enabled=redaction_enabled,
+        redact_fields=redact_fields,
+        capture_sqlalchemy=capture_sqlalchemy,
+        sqlalchemy_level=sqlalchemy_level,
+        max_message_length=max_message_length,
+        max_exception_length=max_exception_length,
     )

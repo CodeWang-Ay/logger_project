@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 import logger_utils
-from logger_utils import get_logger, get_logger_manager
+from logger_utils import close_logger_manager, get_logger, get_logger_manager
 
 
 class ComponentApiTests(unittest.TestCase):
@@ -74,6 +74,13 @@ class ComponentApiTests(unittest.TestCase):
         direct = get_logger_manager(str(self.config_path))
         equivalent = get_logger_manager(str(self.root / "." / "logger.yml"))
         self.assertIs(direct, equivalent)
+
+    def test_close_removes_manager_from_registry(self):
+        original = get_logger_manager(str(self.config_path))
+        original.configure_from_config()
+        close_logger_manager(str(self.config_path))
+        replacement = get_logger_manager(str(self.config_path))
+        self.assertIsNot(original, replacement)
 
 
 if __name__ == "__main__":
