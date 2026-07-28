@@ -142,6 +142,11 @@ def setup_logger(
     sqlalchemy_level: str | int = "WARNING",
     max_message_length: int = 16_384,
     max_exception_length: int = 32_768,
+    rotation_mode: str = "time",
+    rotation_when: str = "midnight",
+    rotation_interval: int = 1,
+    max_bytes: int = 50 * 1024 * 1024,
+    backup_count: int = 30,
 ) -> logging.Logger:
     """使用显式参数配置 logger；适合不希望读取 YAML 的场景。"""
     manager = get_logger_manager(config_path)
@@ -160,4 +165,9 @@ def setup_logger(
         sqlalchemy_level=sqlalchemy_level,
         max_message_length=max_message_length,
         max_exception_length=max_exception_length,
+        rotation_mode=rotation_mode,
+        rotation_when=rotation_when,
+        rotation_interval=rotation_interval,
+        max_bytes=max_bytes,
+        backup_count=backup_count,
     )

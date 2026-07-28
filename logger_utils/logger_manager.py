@@ -10,7 +10,7 @@ import sys
 import threading
 import traceback
 from datetime import datetime, timezone
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 from pathlib import Path
 from typing import Any
 
@@ -237,6 +237,30 @@ class LoggerManager:
                 not isinstance(value, int) or isinstance(value, bool) or value <= 0
             ):
                 raise ValueError(f"log_config.{key} 必须是正整数")
+        rotation_mode = log_config.get("rotation_mode")
+        if rotation_mode not in (None, "time", "size"):
+            raise ValueError("log_config.rotation_mode 必须是 time 或 size")
+        rotation_when = log_config.get("rotation_when")
+        if rotation_when is not None and (
+            not isinstance(rotation_when, str)
+            or not re.fullmatch(
+                r"(S|M|H|D|MIDNIGHT|W[0-6])", rotation_when.upper()
+            )
+        ):
+            raise ValueError("log_config.rotation_when 不是有效的时间轮转周期")
+        for key in ("rotation_interval", "max_bytes"):
+            value = log_config.get(key)
+            if value is not None and (
+                not isinstance(value, int) or isinstance(value, bool) or value <= 0
+            ):
+                raise ValueError(f"log_config.{key} 必须是正整数")
+        backup_count = log_config.get("backup_count")
+        if backup_count is not None and (
+            not isinstance(backup_count, int)
+            or isinstance(backup_count, bool)
+            or backup_count < 0
+        ):
+            raise ValueError("log_config.backup_count 必须是非负整数")
         sqlalchemy_level = log_config.get("sqlalchemy_level")
         if sqlalchemy_level is not None:
             if (
@@ -360,6 +384,11 @@ class LoggerManager:
         sqlalchemy_level: str | int = "WARNING",
         max_message_length: int = 16_384,
         max_exception_length: int = 32_768,
+        rotation_mode: str = "time",
+        rotation_when: str = "midnight",
+        rotation_interval: int = 1,
+        max_bytes: int = 50 * 1024 * 1024,
+        backup_count: int = 30,
     ) -> logging.Logger:
         """先完整构建新 handler，成功后再切换，失败时保留旧日志链路。"""
         level = (
@@ -385,6 +414,14 @@ class LoggerManager:
             raise ValueError("console_stream 必须是 'stdout' 或 'stderr'")
         if max_message_length <= 0 or max_exception_length <= 0:
             raise ValueError("日志长度限制必须是正整数")
+        if rotation_mode not in {"time", "size"}:
+            raise ValueError("rotation_mode 必须是 'time' 或 'size'")
+        if not isinstance(rotation_when, str) or not re.fullmatch(
+            r"(S|M|H|D|MIDNIGHT|W[0-6])", rotation_when.upper()
+        ):
+            raise ValueError("rotation_when 不是有效的时间轮转周期")
+        if rotation_interval <= 0 or max_bytes <= 0 or backup_count < 0:
+            raise ValueError("轮转间隔和文件大小必须为正数，备份数不能为负数")
 
         debug_folder = folder / "debug"
         error_folder = folder / "error"
@@ -424,13 +461,21 @@ class LoggerManager:
         def rotating_handler(
             path: Path, handler_level: int, formatter: logging.Formatter
         ) -> logging.Handler:
-            handler = TimedRotatingFileHandler(
-                path,
-                when="midnight",
-                interval=1,
-                backupCount=30,
-                encoding="utf-8",
-            )
+            if rotation_mode == "size":
+                handler = RotatingFileHandler(
+                    path,
+                    maxBytes=max_bytes,
+                    backupCount=backup_count,
+                    encoding="utf-8",
+                )
+            else:
+                handler = TimedRotatingFileHandler(
+                    path,
+                    when=rotation_when,
+                    interval=rotation_interval,
+                    backupCount=backup_count,
+                    encoding="utf-8",
+                )
             handler.setLevel(handler_level)
             handler.setFormatter(formatter)
             return prepare(handler)
@@ -592,6 +637,11 @@ class LoggerManager:
             sqlalchemy_level=config.get("sqlalchemy_level", "WARNING"),
             max_message_length=config.get("max_message_length", 16_384),
             max_exception_length=config.get("max_exception_length", 32_768),
+            rotation_mode=config.get("rotation_mode", "time"),
+            rotation_when=config.get("rotation_when", "midnight"),
+            rotation_interval=config.get("rotation_interval", 1),
+            max_bytes=config.get("max_bytes", 50 * 1024 * 1024),
+            backup_count=config.get("backup_count", 30),
         )
 
 

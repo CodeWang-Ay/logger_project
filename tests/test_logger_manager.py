@@ -3,6 +3,7 @@ import logging
 import sys
 import tempfile
 import unittest
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from unittest.mock import patch
 
@@ -279,6 +280,37 @@ class LoggerManagerTests(unittest.TestCase):
         self.manager.close()
         self.assertEqual(sqlalchemy_logger.level, original_level)
         self.assertEqual(sqlalchemy_logger.propagate, original_propagate)
+
+    def test_size_rotation_creates_backup_files(self):
+        log_folder = self.root / "size-rotation"
+        logger = self.manager.setup_logger(
+            name="test-managed",
+            log_folder=str(log_folder),
+            to_console=False,
+            json_format=False,
+            rotation_mode="size",
+            max_bytes=200,
+            backup_count=2,
+        )
+        debug_handlers = [
+            handler
+            for handler in logger.handlers
+            if isinstance(handler, RotatingFileHandler)
+            and Path(handler.baseFilename).name == "debug.log"
+        ]
+        self.assertEqual(len(debug_handlers), 1)
+        for index in range(20):
+            logger.info("rotation-line-%s %s", index, "x" * 40)
+        debug_handlers[0].flush()
+        self.assertTrue((log_folder / "debug" / "debug.log.1").exists())
+
+    def test_invalid_rotation_config_is_rejected(self):
+        previous = self.manager.CONFIG
+        self.config_path.write_text(
+            "log_config:\n  rotation_mode: process\n", encoding="utf-8"
+        )
+        self.assertFalse(self.manager.reload_config())
+        self.assertEqual(self.manager.CONFIG, previous)
 
 
 if __name__ == "__main__":

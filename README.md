@@ -46,6 +46,11 @@ log_config:
   console_stream: stdout
   file_output: true
   json_format: true
+  rotation_mode: time
+  rotation_when: midnight
+  rotation_interval: 1
+  max_bytes: 52428800
+  backup_count: 30
   redaction_enabled: true
   max_message_length: 16384
   max_exception_length: 32768
@@ -60,6 +65,26 @@ log_config:
 ```
 
 `log_level` 控制控制台最低等级；文件日志仍完整记录 `DEBUG` 及以上信息。
+
+文件输出支持两种轮转模式：
+
+```yaml
+# 每天午夜轮转
+rotation_mode: time
+rotation_when: midnight  # 也支持 S/M/H/D/W0-W6
+rotation_interval: 1
+backup_count: 30
+```
+
+```yaml
+# 单文件达到 50 MiB 后轮转
+rotation_mode: size
+max_bytes: 52428800
+backup_count: 5
+```
+
+两种文件轮转模式都只适合单进程。多 worker 仍应使用
+`file_output: false` 的 JSON stdout 模式。
 
 若需要监听配置文件并实时应用改动：
 
