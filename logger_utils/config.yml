@@ -1,4 +1,6 @@
 log_config:
-  name: websocket_proxy_logs
-  log_folder: websocket_proxy_logs
-  log_level: DEBUG 
+  name: websocket_proxy_logs       # logger 名称
+  log_folder: websocket_proxy_logs  # 日志文件夹
+  log_level: DEBUG                  # 控制台日志等级: DEBUG / INFO / WARNING / ERROR
+  to_console: true                  # 是否输出到控制台
+  json_format: true                 # 是否输出 JSON 格式日志（ELK / Loki 对接）

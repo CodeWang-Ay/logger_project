@@ -149,6 +149,10 @@ dependencies = [
     { name = "fastapi" },
     { name = "pyyaml" },
     { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+watch = [
     { name = "watchdog" },
 ]
 
@@ -158,8 +162,9 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
-    { name = "watchdog", specifier = ">=6.0.0" },
+    { name = "watchdog", marker = "extra == 'watch'", specifier = ">=6.0.0" },
 ]
+provides-extras = ["watch"]
 
 [[package]]
 name = "pydantic"

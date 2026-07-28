@@ -5,3 +5,9 @@ __pycache__/
 
 # Virtual environment
 .venv/
+
+# Runtime logs
+*.log
+*.log.*
+*.jsonl
+websocket_proxy_logs/

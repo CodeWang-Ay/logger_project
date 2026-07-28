@@ -23,11 +23,17 @@ FastAPI 日志追踪演示服务
 """
 import asyncio
 import random
+import time
 
 from fastapi                        import FastAPI, Request
 from fastapi.responses              import JSONResponse
 
-from logger_utils.trace             import set_trace_id, get_trace_id
+from logger_utils.trace import (
+    bind_trace_id,
+    extract_trace_id,
+    get_trace_id,
+    reset_trace_id,
+)
 from logger_utils.logger_manager    import logger
 
 # ──────────────────────────────────────────────
@@ -47,17 +53,34 @@ async def trace_middleware(request: Request, call_next):
     2. 写入 contextvars，后续所有日志自动带上
     3. 响应头中返回 trace_id，方便前端/调用方追踪
     """
-    # 优先取上游传入的，没有则生成新的
-    trace_id = request.headers.get("X-Trace-Id")
-    if trace_id:
-        set_trace_id(trace_id)
-    else:
-        trace_id = set_trace_id()
+    # 优先取上游传入的（X-Trace-Id 或 W3C traceparent），没有则生成新的
+    trace_id, token = bind_trace_id(extract_trace_id(request.headers))
+    started_at = time.perf_counter()
+    logger.info("请求开始 method=%s path=%s", request.method, request.url.path)
 
-    response = await call_next(request)
-    response.headers["X-Trace-Id"] = trace_id
-
-    return response
+    try:
+        response = await call_next(request)
+        response.headers["X-Trace-Id"] = trace_id
+        elapsed_ms = (time.perf_counter() - started_at) * 1000
+        logger.info(
+            "请求完成 method=%s path=%s status=%s duration_ms=%.2f",
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed_ms,
+        )
+        return response
+    except Exception:
+        elapsed_ms = (time.perf_counter() - started_at) * 1000
+        logger.exception(
+            "请求异常 method=%s path=%s duration_ms=%.2f",
+            request.method,
+            request.url.path,
+            elapsed_ms,
+        )
+        raise
+    finally:
+        reset_trace_id(token)
 
 
 # ──────────────────────────────────────────────
@@ -98,7 +121,7 @@ async def health():
     return {"status": "ok", "trace_id": get_trace_id()}
 
 
-@app.get("/orders/create")
+@app.post("/orders")
 async def create_order():
     """
     模拟创建订单的完整链路（6 步），每步都有日志。
@@ -124,7 +147,7 @@ async def create_order():
         logger.error("[3/6] 库存锁定失败，订单创建中止")
         return JSONResponse(
             {"error": "库存不足", "trace_id": get_trace_id()},
-            status_code=500,
+            status_code=409,
         )
 
     # Step 4: 创建订单
@@ -164,10 +187,13 @@ async def batch_orders():
     async def process_one(i: int):
         # 子任务使用父 trace_id 加后缀，既有继承又能区分
         parent_tid = get_trace_id()
-        set_trace_id(f"{parent_tid}-{i}")
-        logger.info(f"子任务 [{i}] 开始")
-        await simulate_db_query(f"batch_item_{i}")
-        logger.info(f"子任务 [{i}] 完成")
+        _, token = bind_trace_id(f"{parent_tid[:55]}-{i}")
+        try:
+            logger.info(f"子任务 [{i}] 开始")
+            await simulate_db_query(f"batch_item_{i}")
+            logger.info(f"子任务 [{i}] 完成")
+        finally:
+            reset_trace_id(token)
 
     tasks = [process_one(i) for i in range(5)]
     await asyncio.gather(*tasks)

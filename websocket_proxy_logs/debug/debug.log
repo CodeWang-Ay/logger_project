@@ -921,3 +921,170 @@
 2026-07-28 10:23:07 - websocket_proxy_logs - INFO - [e865c0f2] - [RPC] ← notification-service 返回成功
 2026-07-28 10:23:07 - websocket_proxy_logs - INFO - [e865c0f2] - [6/6] 通知发送完成
 2026-07-28 10:23:07 - websocket_proxy_logs - INFO - [e865c0f2] - ━━━ 订单创建成功 ━━━
+2026-07-28 11:21:04 - websocket_proxy_logs - INFO - [-] - 优化完成测试
+2026-07-28 11:31:19 - websocket_proxy_logs - INFO - [94578e0db6764ad2a9f83c2348f393f6] - 请求开始 method=GET path=/orders/create
+2026-07-28 11:31:19 - websocket_proxy_logs - INFO - [94578e0db6764ad2a9f83c2348f393f6] - 请求完成 method=GET path=/orders/create status=404 duration_ms=1.27
+2026-07-28 11:31:19 - websocket_proxy_logs - INFO - [a1fdcc935cc045e2ac05f57b82470181] - 请求开始 method=GET path=/orders/create
+2026-07-28 11:31:19 - websocket_proxy_logs - INFO - [79e6e40c4b9a46038ce9d637acdb75af] - 请求开始 method=GET path=/orders/create
+2026-07-28 11:31:19 - websocket_proxy_logs - INFO - [a1fdcc935cc045e2ac05f57b82470181] - 请求完成 method=GET path=/orders/create status=404 duration_ms=3.42
+2026-07-28 11:31:19 - websocket_proxy_logs - INFO - [79e6e40c4b9a46038ce9d637acdb75af] - 请求完成 method=GET path=/orders/create status=404 duration_ms=3.56
+2026-07-28 11:33:00 - websocket_proxy_logs - INFO - [cc14aa0722994d58a3f95d3c334495e0] - 请求开始 method=GET path=/orders/create
+2026-07-28 11:33:00 - websocket_proxy_logs - INFO - [cc14aa0722994d58a3f95d3c334495e0] - 请求完成 method=GET path=/orders/create status=404 duration_ms=1.75
+2026-07-28 11:33:36 - websocket_proxy_logs - INFO - [ad976ab5934f4bc4a7a4d776eb8d9dc6] - 请求开始 method=GET path=/orders
+2026-07-28 11:33:36 - websocket_proxy_logs - INFO - [ad976ab5934f4bc4a7a4d776eb8d9dc6] - 请求完成 method=GET path=/orders status=405 duration_ms=0.76
+2026-07-28 11:33:43 - websocket_proxy_logs - INFO - [62f14257ab014a329d529bfe4e83788d] - 请求开始 method=POST path=/orders
+2026-07-28 11:33:43 - websocket_proxy_logs - INFO - [62f14257ab014a329d529bfe4e83788d] - ━━━ 开始创建订单 ━━━
+2026-07-28 11:33:43 - websocket_proxy_logs - INFO - [62f14257ab014a329d529bfe4e83788d] - [1/6] 查询用户信息
+2026-07-28 11:33:43 - websocket_proxy_logs - DEBUG - [62f14257ab014a329d529bfe4e83788d] - [DB] 查询 users ...
+2026-07-28 11:33:43 - websocket_proxy_logs - DEBUG - [62f14257ab014a329d529bfe4e83788d] - [DB] 查询 users 完成
+2026-07-28 11:33:43 - websocket_proxy_logs - INFO - [62f14257ab014a329d529bfe4e83788d] - [1/6] 用户信息查询完成
+2026-07-28 11:33:43 - websocket_proxy_logs - INFO - [62f14257ab014a329d529bfe4e83788d] - [2/6] 查询商品库存
+2026-07-28 11:33:43 - websocket_proxy_logs - DEBUG - [62f14257ab014a329d529bfe4e83788d] - [CACHE] stock:item_123 命中=False
+2026-07-28 11:33:43 - websocket_proxy_logs - DEBUG - [62f14257ab014a329d529bfe4e83788d] - [DB] 查询 inventory ...
+2026-07-28 11:33:43 - websocket_proxy_logs - DEBUG - [62f14257ab014a329d529bfe4e83788d] - [DB] 查询 inventory 完成
+2026-07-28 11:33:43 - websocket_proxy_logs - INFO - [62f14257ab014a329d529bfe4e83788d] - [2/6] 库存查询完成
+2026-07-28 11:33:43 - websocket_proxy_logs - INFO - [62f14257ab014a329d529bfe4e83788d] - [3/6] 锁定库存
+2026-07-28 11:33:43 - websocket_proxy_logs - INFO - [62f14257ab014a329d529bfe4e83788d] - [RPC] → 调用 inventory-service ...
+2026-07-28 11:33:43 - websocket_proxy_logs - ERROR - [62f14257ab014a329d529bfe4e83788d] - [RPC] ← inventory-service 返回失败！
+2026-07-28 11:33:43 - websocket_proxy_logs - ERROR - [62f14257ab014a329d529bfe4e83788d] - [3/6] 库存锁定失败，订单创建中止
+2026-07-28 11:33:43 - websocket_proxy_logs - INFO - [62f14257ab014a329d529bfe4e83788d] - 请求完成 method=POST path=/orders status=409 duration_ms=294.34
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - 请求开始 method=POST path=/orders
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - ━━━ 开始创建订单 ━━━
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [1/6] 查询用户信息
+2026-07-28 11:34:30 - websocket_proxy_logs - DEBUG - [cc8c15f19a644514828302af1035b8dd] - [DB] 查询 users ...
+2026-07-28 11:34:30 - websocket_proxy_logs - DEBUG - [cc8c15f19a644514828302af1035b8dd] - [DB] 查询 users 完成
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [1/6] 用户信息查询完成
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [2/6] 查询商品库存
+2026-07-28 11:34:30 - websocket_proxy_logs - DEBUG - [cc8c15f19a644514828302af1035b8dd] - [CACHE] stock:item_123 命中=True
+2026-07-28 11:34:30 - websocket_proxy_logs - DEBUG - [cc8c15f19a644514828302af1035b8dd] - [DB] 查询 inventory ...
+2026-07-28 11:34:30 - websocket_proxy_logs - DEBUG - [cc8c15f19a644514828302af1035b8dd] - [DB] 查询 inventory 完成
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [2/6] 库存查询完成
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [3/6] 锁定库存
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [RPC] → 调用 inventory-service ...
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [RPC] ← inventory-service 返回成功
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [4/6] 写入订单记录
+2026-07-28 11:34:30 - websocket_proxy_logs - DEBUG - [cc8c15f19a644514828302af1035b8dd] - [DB] 查询 orders (INSERT) ...
+2026-07-28 11:34:30 - websocket_proxy_logs - DEBUG - [cc8c15f19a644514828302af1035b8dd] - [DB] 查询 orders (INSERT) 完成
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [4/6] 订单记录写入完成
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [5/6] 清理相关缓存
+2026-07-28 11:34:30 - websocket_proxy_logs - DEBUG - [cc8c15f19a644514828302af1035b8dd] - [DB] 查询 cache (DELETE) ...
+2026-07-28 11:34:30 - websocket_proxy_logs - DEBUG - [cc8c15f19a644514828302af1035b8dd] - [DB] 查询 cache (DELETE) 完成
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [5/6] 缓存清理完成
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [6/6] 发送订单通知
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [RPC] → 调用 notification-service ...
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [RPC] ← notification-service 返回成功
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - [6/6] 通知发送完成
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - ━━━ 订单创建成功 ━━━
+2026-07-28 11:34:30 - websocket_proxy_logs - INFO - [cc8c15f19a644514828302af1035b8dd] - 请求完成 method=POST path=/orders status=200 duration_ms=403.84
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - 请求开始 method=POST path=/orders
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - ━━━ 开始创建订单 ━━━
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [1/6] 查询用户信息
+2026-07-28 11:35:05 - websocket_proxy_logs - DEBUG - [33f08d59ef754198860f4fa8265be293] - [DB] 查询 users ...
+2026-07-28 11:35:05 - websocket_proxy_logs - DEBUG - [33f08d59ef754198860f4fa8265be293] - [DB] 查询 users 完成
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [1/6] 用户信息查询完成
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [2/6] 查询商品库存
+2026-07-28 11:35:05 - websocket_proxy_logs - DEBUG - [33f08d59ef754198860f4fa8265be293] - [CACHE] stock:item_123 命中=False
+2026-07-28 11:35:05 - websocket_proxy_logs - DEBUG - [33f08d59ef754198860f4fa8265be293] - [DB] 查询 inventory ...
+2026-07-28 11:35:05 - websocket_proxy_logs - DEBUG - [33f08d59ef754198860f4fa8265be293] - [DB] 查询 inventory 完成
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [2/6] 库存查询完成
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [3/6] 锁定库存
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [RPC] → 调用 inventory-service ...
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [RPC] ← inventory-service 返回成功
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [4/6] 写入订单记录
+2026-07-28 11:35:05 - websocket_proxy_logs - DEBUG - [33f08d59ef754198860f4fa8265be293] - [DB] 查询 orders (INSERT) ...
+2026-07-28 11:35:05 - websocket_proxy_logs - DEBUG - [33f08d59ef754198860f4fa8265be293] - [DB] 查询 orders (INSERT) 完成
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [4/6] 订单记录写入完成
+2026-07-28 11:35:05 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [5/6] 清理相关缓存
+2026-07-28 11:35:05 - websocket_proxy_logs - DEBUG - [33f08d59ef754198860f4fa8265be293] - [DB] 查询 cache (DELETE) ...
+2026-07-28 11:35:06 - websocket_proxy_logs - DEBUG - [33f08d59ef754198860f4fa8265be293] - [DB] 查询 cache (DELETE) 完成
+2026-07-28 11:35:06 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [5/6] 缓存清理完成
+2026-07-28 11:35:06 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [6/6] 发送订单通知
+2026-07-28 11:35:06 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [RPC] → 调用 notification-service ...
+2026-07-28 11:35:06 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [RPC] ← notification-service 返回成功
+2026-07-28 11:35:06 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - [6/6] 通知发送完成
+2026-07-28 11:35:06 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - ━━━ 订单创建成功 ━━━
+2026-07-28 11:35:06 - websocket_proxy_logs - INFO - [33f08d59ef754198860f4fa8265be293] - 请求完成 method=POST path=/orders status=200 duration_ms=436.47
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - 请求开始 method=POST path=/orders
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - ━━━ 开始创建订单 ━━━
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [1/6] 查询用户信息
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [b39a93d47a78414c9e7d4741913a5cac] - [DB] 查询 users ...
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - 请求开始 method=POST path=/orders
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - ━━━ 开始创建订单 ━━━
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [1/6] 查询用户信息
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [f107e3a8397a4c37871b2edf41c6c546] - [DB] 查询 users ...
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - 请求开始 method=POST path=/orders
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - ━━━ 开始创建订单 ━━━
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [1/6] 查询用户信息
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [611d2e797ec145359299f6656e145794] - [DB] 查询 users ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [b39a93d47a78414c9e7d4741913a5cac] - [DB] 查询 users 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [1/6] 用户信息查询完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [2/6] 查询商品库存
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [b39a93d47a78414c9e7d4741913a5cac] - [CACHE] stock:item_123 命中=False
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [b39a93d47a78414c9e7d4741913a5cac] - [DB] 查询 inventory ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [f107e3a8397a4c37871b2edf41c6c546] - [DB] 查询 users 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [1/6] 用户信息查询完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [2/6] 查询商品库存
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [f107e3a8397a4c37871b2edf41c6c546] - [CACHE] stock:item_123 命中=True
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [f107e3a8397a4c37871b2edf41c6c546] - [DB] 查询 inventory ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [611d2e797ec145359299f6656e145794] - [DB] 查询 users 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [1/6] 用户信息查询完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [2/6] 查询商品库存
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [611d2e797ec145359299f6656e145794] - [CACHE] stock:item_123 命中=False
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [611d2e797ec145359299f6656e145794] - [DB] 查询 inventory ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [b39a93d47a78414c9e7d4741913a5cac] - [DB] 查询 inventory 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [2/6] 库存查询完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [3/6] 锁定库存
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [RPC] → 调用 inventory-service ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [f107e3a8397a4c37871b2edf41c6c546] - [DB] 查询 inventory 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [2/6] 库存查询完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [3/6] 锁定库存
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [RPC] → 调用 inventory-service ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [611d2e797ec145359299f6656e145794] - [DB] 查询 inventory 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [2/6] 库存查询完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [3/6] 锁定库存
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [RPC] → 调用 inventory-service ...
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [RPC] ← inventory-service 返回成功
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [4/6] 写入订单记录
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [b39a93d47a78414c9e7d4741913a5cac] - [DB] 查询 orders (INSERT) ...
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [RPC] ← inventory-service 返回成功
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [4/6] 写入订单记录
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [f107e3a8397a4c37871b2edf41c6c546] - [DB] 查询 orders (INSERT) ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [b39a93d47a78414c9e7d4741913a5cac] - [DB] 查询 orders (INSERT) 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [4/6] 订单记录写入完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [5/6] 清理相关缓存
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [b39a93d47a78414c9e7d4741913a5cac] - [DB] 查询 cache (DELETE) ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [f107e3a8397a4c37871b2edf41c6c546] - [DB] 查询 orders (INSERT) 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [4/6] 订单记录写入完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [5/6] 清理相关缓存
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [f107e3a8397a4c37871b2edf41c6c546] - [DB] 查询 cache (DELETE) ...
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [RPC] ← inventory-service 返回成功
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [4/6] 写入订单记录
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [611d2e797ec145359299f6656e145794] - [DB] 查询 orders (INSERT) ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [b39a93d47a78414c9e7d4741913a5cac] - [DB] 查询 cache (DELETE) 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [5/6] 缓存清理完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [6/6] 发送订单通知
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [RPC] → 调用 notification-service ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [f107e3a8397a4c37871b2edf41c6c546] - [DB] 查询 cache (DELETE) 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [5/6] 缓存清理完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [6/6] 发送订单通知
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [RPC] → 调用 notification-service ...
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [611d2e797ec145359299f6656e145794] - [DB] 查询 orders (INSERT) 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [4/6] 订单记录写入完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [5/6] 清理相关缓存
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [611d2e797ec145359299f6656e145794] - [DB] 查询 cache (DELETE) ...
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [RPC] ← notification-service 返回成功
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - [6/6] 通知发送完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - ━━━ 订单创建成功 ━━━
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [f107e3a8397a4c37871b2edf41c6c546] - 请求完成 method=POST path=/orders status=200 duration_ms=375.78
+2026-07-28 11:35:42 - websocket_proxy_logs - DEBUG - [611d2e797ec145359299f6656e145794] - [DB] 查询 cache (DELETE) 完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [5/6] 缓存清理完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [6/6] 发送订单通知
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [RPC] → 调用 notification-service ...
+2026-07-28 11:35:42 - websocket_proxy_logs - ERROR - [b39a93d47a78414c9e7d4741913a5cac] - [RPC] ← notification-service 返回失败！
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - [6/6] 通知发送完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - ━━━ 订单创建成功 ━━━
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [b39a93d47a78414c9e7d4741913a5cac] - 请求完成 method=POST path=/orders status=200 duration_ms=409.19
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [RPC] ← notification-service 返回成功
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - [6/6] 通知发送完成
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - ━━━ 订单创建成功 ━━━
+2026-07-28 11:35:42 - websocket_proxy_logs - INFO - [611d2e797ec145359299f6656e145794] - 请求完成 method=POST path=/orders status=200 duration_ms=499.43

@@ -1,258 +1,330 @@
-import os
-import yaml
+"""可配置的应用日志管理器。"""
+
+from __future__ import annotations
+
+import json
 import logging
-import coloredlogs
+import os
 import threading
-from watchdog.observers     import Observer
-from watchdog.events        import FileSystemEventHandler
-from logging.handlers       import TimedRotatingFileHandler
-from logger_utils.trace     import TraceFilter
+import traceback
+from datetime import datetime, timezone
+from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
+from typing import Any
+
+import coloredlogs
+import yaml
+
+from logger_utils.trace import TraceFilter
+
+_MANAGED_HANDLER = "_logger_manager_owned"
+_SQLALCHEMY_LOGGERS = ("sqlalchemy", "sqlalchemy.engine", "sqlalchemy.pool")
+_STANDARD_RECORD_FIELDS = set(logging.makeLogRecord({}).__dict__) | {
+    "message",
+    "asctime",
+    "trace_id",
+}
+
+
+class JsonFormatter(logging.Formatter):
+    """输出可被 ELK、Loki 等系统稳定解析的单行 JSON。"""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict[str, Any] = {
+            "time": datetime.fromtimestamp(
+                record.created, tz=timezone.utc
+            ).isoformat(timespec="milliseconds"),
+            "logger": record.name,
+            "level": record.levelname,
+            "trace_id": getattr(record, "trace_id", "-"),
+            "file": f"{record.filename}:{record.lineno}",
+            "func": record.funcName,
+            "message": record.getMessage(),
+            "process": record.process,
+            "thread": record.thread,
+        }
+        extras = {
+            key: value
+            for key, value in record.__dict__.items()
+            if key not in _STANDARD_RECORD_FIELDS and not key.startswith("_")
+        }
+        if extras:
+            payload["extra"] = extras
+        if record.exc_info:
+            payload["exception"] = "".join(
+                traceback.format_exception(*record.exc_info)
+            ).rstrip()
+        if record.stack_info:
+            payload["stack"] = record.stack_info
+        return json.dumps(payload, ensure_ascii=False, default=str)
+
 
 class LoggerManager:
     def __init__(self, config_path: str):
-        self.config_path = config_path
-        self.CONFIG: dict = {}
-        self.config_lock = threading.Lock()
-        self.observer = None
+        self.config_path = os.path.abspath(config_path)
+        self.CONFIG: dict[str, Any] = {}
+        self.config_lock = threading.RLock()
+        self.observer: Any = None
+        self._logger_name: str | None = None
+        self.reload_config(apply=False)
 
-        # 初始化加载配置
-        self.reload_config()
+    def _load_yaml(self, file_path: str) -> dict[str, Any]:
+        with open(file_path, "r", encoding="utf-8") as file:
+            config = yaml.safe_load(file) or {}
+        if not isinstance(config, dict):
+            raise ValueError("配置文件顶层必须是映射")
+        self._validate_config(config)
+        return config
 
-    def _load_yaml(self, file_path: str) -> dict:
-        """加载 YAML 文件并返回其内容。"""
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f) or {}
+    @staticmethod
+    def _validate_config(config: dict[str, Any]) -> None:
+        log_config = config.get("log_config", {})
+        if not isinstance(log_config, dict):
+            raise ValueError("log_config 必须是映射")
+        for key in ("name", "log_folder", "log_level"):
+            value = log_config.get(key)
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                raise ValueError(f"log_config.{key} 必须是非空字符串")
+        for key in ("to_console", "json_format"):
+            value = log_config.get(key)
+            if value is not None and not isinstance(value, bool):
+                raise ValueError(f"log_config.{key} 必须是布尔值")
+        level = log_config.get("log_level")
+        if level and level.upper() not in logging.getLevelNamesMapping():
+            raise ValueError(f"未知日志等级: {level}")
 
-    def reload_config(self) -> None:
-        """重新加载配置文件到全局 CONFIG。"""
+    def reload_config(self, *, apply: bool = True) -> bool:
+        """原子加载配置；读取失败时继续使用上一份有效配置。"""
+        previous_config: dict[str, Any] | None = None
         try:
             new_config = self._load_yaml(self.config_path)
             with self.config_lock:
+                previous_config = self.CONFIG
                 self.CONFIG = new_config
+                if apply and self._logger_name is not None:
+                    self.configure_from_config(default_log_name=self._logger_name)
             print("[CONFIG] 配置已重新加载")
-        except Exception as e:
-            print(f"[CONFIG] 加载配置失败: {e}")
+            return True
+        except Exception as exc:
+            if previous_config is not None:
+                with self.config_lock:
+                    self.CONFIG = previous_config
+            logging.getLogger(__name__).error("加载日志配置失败: %s", exc)
+            return False
 
-    def get_config(self, key: str, default=None):
-        """
-        安全地从 CONFIG 中读取配置项。
-        支持点号路径，也兼容原来的一级键读取。
-        """
+    def get_config(self, key: str, default: Any = None) -> Any:
         with self.config_lock:
-            if "." in key:
-                cur = self.CONFIG
-                for part in key.split("."):
-                    if not isinstance(cur, dict):
-                        return default
-                    cur = cur.get(part, default)
-                return cur
-            return self.CONFIG.get(key, default)
-
-    # 监听内部类
-    class _ConfigFileEventHandler(FileSystemEventHandler):
-        def __init__(self, logger_manager):
-            self.logger_manager = logger_manager
-
-        def on_modified(self, event):
-            if os.path.abspath(event.src_path) == os.path.abspath(self.logger_manager.config_path):
-                print("[CONFIG] 检测到配置文件修改，重新加载配置…")
-                self.logger_manager.reload_config()
+            current: Any = self.CONFIG
+            for part in key.split("."):
+                if not isinstance(current, dict) or part not in current:
+                    return default
+                current = current[part]
+            return current
 
     def start_config_watcher(self) -> None:
-        """
-        启动文件监听，实现配置文件的实时热更新。
-        不需要热更新时，可以完全不调用本函数。
-        """
-        if not self.CONFIG:  # 避免重复调用
-            self.reload_config()
+        """启动可选的 watchdog 配置热更新。"""
+        with self.config_lock:
+            if self.observer is not None and self.observer.is_alive():
+                return
+            try:
+                from watchdog.events import FileSystemEventHandler
+                from watchdog.observers import Observer
+            except ImportError as exc:
+                raise RuntimeError(
+                    "配置监听需要可选依赖，请执行: pip install 'logger-project[watch]'"
+                ) from exc
 
-        event_handler = self._ConfigFileEventHandler(self)
-        self.observer = Observer()
-        self.observer.daemon = True  # 主线程退出时自动关闭
-        self.observer.schedule(event_handler, path=os.path.dirname(self.config_path), recursive=False)
-        self.observer.start()
-        print("[CONFIG] 文件监听器已启动")
+            manager = self
+
+            class ConfigEventHandler(FileSystemEventHandler):
+                @staticmethod
+                def _matches(path: str) -> bool:
+                    return os.path.abspath(path) == manager.config_path
+
+                def on_modified(self, event: Any) -> None:
+                    if not event.is_directory and self._matches(event.src_path):
+                        manager.reload_config()
+
+                on_created = on_modified
+
+                def on_moved(self, event: Any) -> None:
+                    if not event.is_directory and self._matches(event.dest_path):
+                        manager.reload_config()
+
+            observer = Observer()
+            observer.daemon = True
+            observer.schedule(
+                ConfigEventHandler(),
+                path=os.path.dirname(self.config_path) or ".",
+                recursive=False,
+            )
+            observer.start()
+            self.observer = observer
 
     def stop_config_watcher(self) -> None:
-        """停止文件监听器。"""
-        if self.observer:
-            self.observer.stop()
-            self.observer.join()
-            print("[CONFIG] 文件监听器已停止")
+        with self.config_lock:
+            observer, self.observer = self.observer, None
+        if observer is not None:
+            observer.stop()
+            observer.join(timeout=5)
 
-    # 设置日志的显示格式
-    def setup_logger(self, name='MQI', log_folder='test-logs', log_level="DEBUG", to_console=True):
-        """
-        配置并返回一个日志记录器，支持将调试日志与错误日志分别输出到不同文件夹中，
-        每天轮转日志文件，保留 30 天，同时可选是否输出到控制台。
+    @staticmethod
+    def _remove_managed_handlers(target: logging.Logger) -> None:
+        for handler in target.handlers[:]:
+            if getattr(handler, _MANAGED_HANDLER, False):
+                target.removeHandler(handler)
+                handler.close()
 
-        :param name: 日志记录器名称。
-        :param log_folder: 日志根目录。
-        :param log_level: 控制台日志等级，支持字符串（如 "INFO"）或 logging 模块常量（如 logging.INFO）。
-        :param to_console: 是否将日志输出到控制台（默认开启）。
-        :return: 配置完成的 logger 实例。
-        """
-        BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-        
-        # 解析控制台日志等级
-        if isinstance(log_level, str):
-            console_level = logging._nameToLevel.get(log_level.upper(), logging.INFO)
-        else:
-            console_level = log_level
+    @staticmethod
+    def _mark(handler: logging.Handler) -> logging.Handler:
+        setattr(handler, _MANAGED_HANDLER, True)
+        return handler
 
-        # 将相对路径转为绝对路径
-        log_folder = (
-            log_folder if os.path.isabs(log_folder)
-            else os.path.join(BASE_DIR, log_folder)
+    def setup_logger(
+        self,
+        name: str = "MQI",
+        log_folder: str = "test-logs",
+        log_level: str | int = "DEBUG",
+        to_console: bool = True,
+        json_format: bool = True,
+    ) -> logging.Logger:
+        """创建或原子重配应用 logger。"""
+        level = (
+            logging.getLevelNamesMapping().get(log_level.upper(), logging.INFO)
+            if isinstance(log_level, str)
+            else log_level
         )
+        base_dir = Path(__file__).resolve().parent.parent
+        folder = Path(log_folder)
+        if not folder.is_absolute():
+            folder = base_dir / folder
 
-        # 日志文件夹路径
-        debug_log_folder = os.path.join(log_folder, 'debug')
-        error_log_folder = os.path.join(log_folder, 'error')
-        os.makedirs(debug_log_folder, exist_ok=True)
-        os.makedirs(error_log_folder, exist_ok=True)
+        debug_folder = folder / "debug"
+        error_folder = folder / "error"
+        debug_folder.mkdir(parents=True, exist_ok=True)
+        error_folder.mkdir(parents=True, exist_ok=True)
 
-        # 获取或创建 logger
-        logger = logging.getLogger(name)
-        logger.handlers.clear()
-        logger.setLevel(logging.DEBUG)  # 捕获所有级别的日志
-        logger.propagate = False  # 禁用传播到父记录器
+        with self.config_lock:
+            logger = logging.getLogger(name)
+            targets = [logger, *(logging.getLogger(n) for n in _SQLALCHEMY_LOGGERS)]
+            for target in targets:
+                self._remove_managed_handlers(target)
 
-        # 创建 trace_id 过滤器（所有 handler 共用）
-        trace_filter = TraceFilter()
-        logger.addFilter(trace_filter)
+            logger.setLevel(logging.DEBUG)
+            logger.propagate = False
+            logger.filters[:] = [
+                item for item in logger.filters if not isinstance(item, TraceFilter)
+            ]
+            trace_filter = TraceFilter()
+            logger.addFilter(trace_filter)
 
-        # Debug 文件日志处理器（每天轮转，保留 30 天）
-        debug_handler = TimedRotatingFileHandler(
-            os.path.join(debug_log_folder, 'debug.log'),
-            when='midnight', interval=1, backupCount=30, encoding='utf-8'
-        )
-        debug_handler.setLevel(logging.DEBUG)
-        debug_handler.addFilter(trace_filter)
-        debug_handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - [%(trace_id)s] - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        ))
-
-        # Error 文件日志处理器（每天轮转，保留 30 天）
-        error_handler = TimedRotatingFileHandler(
-            os.path.join(error_log_folder, 'error.log'),
-            when='midnight', interval=1, backupCount=30, encoding='utf-8'
-        )
-        error_handler.setLevel(logging.ERROR)
-        error_handler.addFilter(trace_filter)
-        error_handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - [%(trace_id)s] - [%(filename)s:%(lineno)d - %(funcName)s()] - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        ))
-
-        # 控制台输出处理器（可选）
-        if to_console:
-            console_handler = logging.StreamHandler()
-            console_handler.setLevel(console_level)
-        #     console_handler.setFormatter(logging.Formatter(
-        #     '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d - %(funcName)s()] - %(message)s',
-        #     datefmt='%Y-%m-%d %H:%M:%S'
-        # ))
-            # 创建彩色控制台处理器
-            console_formatter = coloredlogs.ColoredFormatter(
-                '%(asctime)s - %(name)s - %(levelname)s - [%(trace_id)s] - [%(filename)s:%(lineno)d - %(funcName)s()] - %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S',
-                level_styles={
-                    'debug': {'color': 'cyan'},
-                    # 'info': {'color': 'green'},
-                    'info': {'color': 'white'},
-                    'warning': {'color': 'yellow'},
-                    'error': {'color': 'red', 'bold': True},
-                    'critical': {'color': 'magenta', 'bold': True}
-                },
-                field_styles={
-                    'asctime': {'color': 'blue'},
-                    'levelname': {'color': 'black', 'bold': True},
-                    'filename': {'color': 'blue'},
-                    'lineno': {'color': 'blue'}
-                }
+            text_formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - "
+                "[%(trace_id)s] - %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
             )
-            console_handler.setFormatter(console_formatter)
-            console_handler.addFilter(trace_filter)
-            logger.addHandler(console_handler)
+            error_formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - [%(trace_id)s] - "
+                "[%(filename)s:%(lineno)d - %(funcName)s()] - %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
 
-        # 添加文件处理器
-        logger.addHandler(debug_handler)
-        logger.addHandler(error_handler)
+            def rotating_handler(
+                path: Path, handler_level: int, formatter: logging.Formatter
+            ) -> logging.Handler:
+                handler = TimedRotatingFileHandler(
+                    path,
+                    when="midnight",
+                    interval=1,
+                    backupCount=30,
+                    encoding="utf-8",
+                )
+                handler.setLevel(handler_level)
+                handler.setFormatter(formatter)
+                handler.addFilter(trace_filter)
+                return self._mark(handler)
 
-        # 2. SQLAlchemy logger
-        for name in ("sqlalchemy", "sqlalchemy.engine", "sqlalchemy.pool"):
-            sa = logging.getLogger(name)
-            sa.setLevel(logging.INFO)                # 想存多少就调多少
-            sa.addHandler(debug_handler)                    # 同一个 handler 直接复用
-            sa.addHandler(error_handler)
-            sa.propagate = False       
+            app_handlers: list[logging.Handler] = [
+                rotating_handler(debug_folder / "debug.log", logging.DEBUG, text_formatter),
+                rotating_handler(error_folder / "error.log", logging.ERROR, error_formatter),
+            ]
 
-        return logger
+            if json_format:
+                json_folder = folder / "json"
+                json_folder.mkdir(parents=True, exist_ok=True)
+                app_handlers.append(
+                    rotating_handler(
+                        json_folder / "app.jsonl", logging.DEBUG, JsonFormatter()
+                    )
+                )
 
-# 初始化日志管理器
-def initialize_logger(logger_manager: LoggerManager, default_log_name="TEST"):
-    """
-    初始化日志记录器，优先使用配置文件中的 log_config，若失败则使用默认值。
-    Args:
-        logger_manager: 负责管理日志配置和创建的管理器对象，需提供 get_config 和 setup_logger 方法。
-        default_log_name (str): 当配置加载失败时使用的默认日志名称。
-    Returns:
-        logging.Logger: 配置好的日志记录器实例。
-    """
-    # 获取日志配置
-    config_log = logger_manager.get_config('log_config')
+            if to_console:
+                console = logging.StreamHandler()
+                console.setLevel(level)
+                console.setFormatter(
+                    coloredlogs.ColoredFormatter(
+                        "%(asctime)s - %(name)s - %(levelname)s - "
+                        "[%(trace_id)s] - [%(filename)s:%(lineno)d - "
+                        "%(funcName)s()] - %(message)s",
+                        datefmt="%Y-%m-%d %H:%M:%S",
+                    )
+                )
+                console.addFilter(trace_filter)
+                app_handlers.append(self._mark(console))
 
-    # 检查配置是否加载成功且为字典
-    if config_log is None or not isinstance(config_log, dict):
-        print(f"Failed to load 'log_config'. Using default logger name: {default_log_name}")
-        log_name = default_log_name
-        log_level = "DEBUG"
-        log_folder = "test-logs"
+            for handler in app_handlers:
+                logger.addHandler(handler)
 
-        # 仅在没有处理器的情况下初始化
-        logger = logging.getLogger(log_name)
-        if not logger.handlers:
-            logger_manager.setup_logger(name=log_name, log_level=log_level, log_folder=log_folder)
-    else:           # 获取 config_log. yml文件配置
-        # 使用配置中的值，提供默认 fallback
-        log_name = config_log.get('name', "default_logger")
-        log_level = config_log.get('log_level', "DEBUG")
-        log_folder = config_log.get('log_folder', "test-logs")
-        logger_manager.setup_logger(name=log_name, log_level=log_level, log_folder=log_folder)
+            # 只在 SQLAlchemy 顶层 logger 注册一次，子 logger 向其传播，
+            # 避免同一条记录被多个层级重复写入。
+            sqlalchemy_logger = logging.getLogger("sqlalchemy")
+            sqlalchemy_logger.setLevel(logging.INFO)
+            sqlalchemy_logger.propagate = False
+            sqlalchemy_logger.addHandler(
+                rotating_handler(
+                    debug_folder / "debug.log", logging.DEBUG, text_formatter
+                )
+            )
+            sqlalchemy_logger.addHandler(
+                rotating_handler(
+                    error_folder / "error.log", logging.ERROR, error_formatter
+                )
+            )
+            for child_name in ("sqlalchemy.engine", "sqlalchemy.pool"):
+                child = logging.getLogger(child_name)
+                child.setLevel(logging.NOTSET)
+                child.propagate = True
 
-    # 返回配置好的 logger
-    return logging.getLogger(log_name)
+            self._logger_name = name
+            return logger
 
-# 只加载一次
-"""
-1. 配置config.yml文件路径地址
-2. 设置logger.日志的打印样式    setup_logger
-"""
-current_file_path = os.path.abspath(__file__)
-current_directory = os.path.dirname(current_file_path)
-config_path = os.path.join(current_directory, 'config.yml')     # logger_utils/config.yml'
+    def configure_from_config(self, default_log_name: str = "TEST") -> logging.Logger:
+        config = self.get_config("log_config", {})
+        if not isinstance(config, dict):
+            config = {}
+        configured_name = config.get("name", default_log_name)
+        # 模块使用方通常持有既有 Logger 引用；热更新期间保留名称，避免
+        # 配置创建了新 logger 而调用方仍继续写入旧 logger。
+        active_name = self._logger_name or configured_name
+        return self.setup_logger(
+            name=active_name,
+            log_folder=config.get("log_folder", "test-logs"),
+            log_level=config.get("log_level", "DEBUG"),
+            to_console=bool(config.get("to_console", True)),
+            json_format=bool(config.get("json_format", True)),
+        )
 
-# config_path = "yaml/logger.yml"
-logger_manager = LoggerManager(config_path)         # 这里已经调用了 logger_manager.reload_config() 方法 
-# logger_manager.reload_config()
+
+def initialize_logger(
+    logger_manager: LoggerManager, default_log_name: str = "TEST"
+) -> logging.Logger:
+    return logger_manager.configure_from_config(default_log_name)
+
+
+config_path = str(Path(__file__).with_name("config.yml"))
+logger_manager = LoggerManager(config_path)
 logger = initialize_logger(logger_manager)
 
-# 使用示例
-if __name__ == "__main__":
-    logger.info("你好，中国")
-    logger.warning("你好，美国")
-    logger.error("你好，日本")
-    # logger_manager.start_config_watcher()
-    # # pass/
-    # # # 示例：获取配置项
-    # db_host = logger_manager.get_config("database.host", "127.0.0.1")
-    # print(f"Database host: {db_host}")
 
-    # # 确保主线程不会立即退出
-    # try:
-    #     while True:
-    #         pass
-    # except KeyboardInterrupt:
-    #     logger_manager.stop_config_watcher()
+if __name__ == "__main__":
+    logger.info("日志管理器启动成功")

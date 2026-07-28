@@ -1,13 +1,18 @@
 [project]
 name = "logger-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI-friendly structured logging with request trace IDs"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "coloredlogs>=15.0.1",
     "pyyaml>=6.0.3",
-    "watchdog>=6.0.0",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.34.0",
 ]
+
+[project.optional-dependencies]
+watch = ["watchdog>=6.0.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
