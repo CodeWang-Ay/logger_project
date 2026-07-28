@@ -1,1 +1,8 @@
 2026-07-28 09:23:30 - websocket_proxy_logs - ERROR - [main.py:26 - add()] - Error: division by zero
+2026-07-28 09:54:27 - websocket_proxy_logs - ERROR - [0d05b5fd] - [server.py:88 - simulate_rpc_call()] - [RPC] ← inventory-service 返回失败！
+2026-07-28 09:54:27 - websocket_proxy_logs - ERROR - [0d05b5fd] - [server.py:124 - create_order()] - [3/6] 库存锁定失败，订单创建中止
+2026-07-28 09:54:27 - websocket_proxy_logs - ERROR - [c0c21f68] - [server.py:88 - simulate_rpc_call()] - [RPC] ← notification-service 返回失败！
+2026-07-28 09:54:27 - websocket_proxy_logs - ERROR - [ac89237e] - [server.py:88 - simulate_rpc_call()] - [RPC] ← notification-service 返回失败！
+2026-07-28 10:15:07 - websocket_proxy_logs - ERROR - [83a7813e] - [server.py:88 - simulate_rpc_call()] - [RPC] ← notification-service 返回失败！
+2026-07-28 10:16:08 - websocket_proxy_logs - ERROR - [9923dce2] - [server.py:88 - simulate_rpc_call()] - [RPC] ← inventory-service 返回失败！
+2026-07-28 10:16:08 - websocket_proxy_logs - ERROR - [9923dce2] - [server.py:124 - create_order()] - [3/6] 库存锁定失败，订单创建中止

@@ -6,6 +6,7 @@ import threading
 from watchdog.observers     import Observer
 from watchdog.events        import FileSystemEventHandler
 from logging.handlers       import TimedRotatingFileHandler
+from logger_utils.trace     import TraceFilter
 
 class LoggerManager:
     def __init__(self, config_path: str):
@@ -117,14 +118,19 @@ class LoggerManager:
         logger.setLevel(logging.DEBUG)  # 捕获所有级别的日志
         logger.propagate = False  # 禁用传播到父记录器
 
+        # 创建 trace_id 过滤器（所有 handler 共用）
+        trace_filter = TraceFilter()
+        logger.addFilter(trace_filter)
+
         # Debug 文件日志处理器（每天轮转，保留 30 天）
         debug_handler = TimedRotatingFileHandler(
             os.path.join(debug_log_folder, 'debug.log'),
             when='midnight', interval=1, backupCount=30, encoding='utf-8'
         )
         debug_handler.setLevel(logging.DEBUG)
+        debug_handler.addFilter(trace_filter)
         debug_handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            '%(asctime)s - %(name)s - %(levelname)s - [%(trace_id)s] - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         ))
 
@@ -134,8 +140,9 @@ class LoggerManager:
             when='midnight', interval=1, backupCount=30, encoding='utf-8'
         )
         error_handler.setLevel(logging.ERROR)
+        error_handler.addFilter(trace_filter)
         error_handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d - %(funcName)s()] - %(message)s',
+            '%(asctime)s - %(name)s - %(levelname)s - [%(trace_id)s] - [%(filename)s:%(lineno)d - %(funcName)s()] - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         ))
 
@@ -149,7 +156,7 @@ class LoggerManager:
         # ))
             # 创建彩色控制台处理器
             console_formatter = coloredlogs.ColoredFormatter(
-                '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d - %(funcName)s()] - %(message)s',
+                '%(asctime)s - %(name)s - %(levelname)s - [%(trace_id)s] - [%(filename)s:%(lineno)d - %(funcName)s()] - %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S',
                 level_styles={
                     'debug': {'color': 'cyan'},
@@ -167,6 +174,7 @@ class LoggerManager:
                 }
             )
             console_handler.setFormatter(console_formatter)
+            console_handler.addFilter(trace_filter)
             logger.addHandler(console_handler)
 
         # 添加文件处理器
