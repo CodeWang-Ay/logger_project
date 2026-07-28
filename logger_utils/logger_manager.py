@@ -321,10 +321,36 @@ def initialize_logger(
     return logger_manager.configure_from_config(default_log_name)
 
 
-config_path = str(Path(__file__).with_name("config.yml"))
-logger_manager = LoggerManager(config_path)
-logger = initialize_logger(logger_manager)
+_default_lock = threading.RLock()
+_default_manager_instance: LoggerManager | None = None
+
+
+def get_default_manager() -> LoggerManager:
+    """延迟创建默认管理器，导入模块本身不会创建目录或打开文件。"""
+    global _default_manager_instance
+    with _default_lock:
+        if _default_manager_instance is None:
+            config_path = str(Path(__file__).with_name("config.yml"))
+            _default_manager_instance = LoggerManager(config_path)
+        return _default_manager_instance
+
+
+def get_default_logger() -> logging.Logger:
+    """延迟创建默认 logger。"""
+    manager = get_default_manager()
+    if manager._logger_name is None:
+        return manager.configure_from_config()
+    return logging.getLogger(manager._logger_name)
+
+
+def __getattr__(name: str) -> Any:
+    """兼容旧代码，同时保持真正的延迟初始化。"""
+    if name == "logger_manager":
+        return get_default_manager()
+    if name == "logger":
+        return get_default_logger()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 if __name__ == "__main__":
-    logger.info("日志管理器启动成功")
+    get_default_logger().info("日志管理器启动成功")

@@ -34,7 +34,9 @@ from logger_utils.trace import (
     get_trace_id,
     reset_trace_id,
 )
-from logger_utils.logger_manager    import logger
+from logger_utils import get_logger
+
+logger = get_logger(__name__)
 
 # ──────────────────────────────────────────────
 # FastAPI 应用

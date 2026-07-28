@@ -12,7 +12,7 @@
 ## 安装与启动
 
 ```bash
-uv sync
+uv sync --extra server
 uv run python main.py
 ```
 
@@ -69,8 +69,9 @@ logger_manager.stop_config_watcher()
 ## 在业务代码中使用
 
 ```python
-from logger_utils.logger_manager import logger
+from logger_utils import get_logger
 
+logger = get_logger(__name__)
 logger.info("创建订单 order_id=%s", order_id)
 
 try:
@@ -80,6 +81,18 @@ except Exception:
 ```
 
 不要记录密码、访问令牌、银行卡号等敏感字段。
+
+仅作为组件安装时，FastAPI 和 Uvicorn 不会进入核心依赖：
+
+```bash
+pip install .
+pip install ".[watch]"   # 需要配置热更新
+pip install ".[server]"  # 需要运行仓库内的演示服务
+```
+
+`get_logger(__name__)` 返回默认基础 logger 的子 logger。多个业务模块共享同一组
+handler，但日志中的 logger 名称仍能区分模块。单纯执行 `import logger_utils` 不会
+创建目录、打开日志文件或启动线程。
 
 ## 输出目录
 
