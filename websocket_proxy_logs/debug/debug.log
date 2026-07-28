@@ -1,1 +1,5 @@
-2026-07-27 16:26:10 - websocket_proxy_logs - INFO - hello world
+2026-07-28 09:06:35 - websocket_proxy_logs - INFO - test logger
+2026-07-28 09:23:05 - websocket_proxy_logs - INFO - test logger
+2026-07-28 09:23:14 - websocket_proxy_logs - INFO - test logger
+2026-07-28 09:23:30 - websocket_proxy_logs - ERROR - Error: division by zero
+2026-07-28 09:23:30 - websocket_proxy_logs - INFO - test logger
